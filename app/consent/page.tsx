@@ -1,4 +1,4 @@
-// app/consent/page.tsx - FINAL FIXED VERSION
+// app/consent/page.tsx - Vercel-ready (BigInt(0) only)
 'use client';
 
 import { useState, useEffect } from 'react';
