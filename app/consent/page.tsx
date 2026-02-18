@@ -1,4 +1,4 @@
-// app/consent/page.tsx - Screen 4: Consent (REAL EAS attestation)
+// app/consent/page.tsx - FINAL VERSION (bigint fixed)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,11 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { EAS, SchemaEncoder } from '@ethereum-attestation-service/eas-sdk';
-import { base } from 'viem/chains';
 import { Badge } from '@/components/ui/badge';
 
-const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021'; // Base mainnet EAS
-const SCHEMA_UID = '0x6ac87b3f4c7a0678447856c42bc08b837ecfdc24c4b67862fd21f2150059607b'; // ProoflyConsentV1 UID from base.easscan.org/schemas
+const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021';
+const SCHEMA_UID = '0x6ac87b3f4c7a0678447856c42bc08b837ecfdc24c4b67862fd21f2150059607b';
 
 export default function Consent() {
   const { address, isConnected } = useAccount();
@@ -21,7 +20,6 @@ export default function Consent() {
   const [attestationUID, setAttestationUID] = useState('');
   const [explorerLink, setExplorerLink] = useState('');
 
-  // Load name from previous form if we stored it (bonus: auto-fill)
   useEffect(() => {
     const savedName = localStorage.getItem('prooflyFullName');
     if (savedName) setFullName(savedName);
@@ -30,8 +28,8 @@ export default function Consent() {
   const consentText = `I, ${fullName || '[Your Full Name]'}, wallet ${address || '0x...'}, authorize Proofly to act as my agent for submitting a Colorado birth certificate request on my behalf. Privacy-first, data deleted on-chain.`;
 
   const handleSign = async () => {
-    if (!address || !fullName || !SCHEMA_UID || SCHEMA_UID === '0x6ac87b3f4c7a0678447856c42bc08b837ecfdc24c4b67862fd21f2150059607b') {
-      alert('Please enter your full name and make sure you replaced SCHEMA_UID in the code with your real one from base.easscan.org');
+    if (!address || !fullName.trim()) {
+      alert('Connect wallet and enter your full name');
       return;
     }
 
@@ -39,15 +37,15 @@ export default function Consent() {
 
     try {
       const eas = new EAS(EAS_CONTRACT_ADDRESS);
-      eas.connect(window.ethereum!); // RainbowKit already injected the provider
+      eas.connect(window.ethereum!);
 
       const schemaEncoder = new SchemaEncoder('string consentFor, address user, bytes32 idHash, uint256 issuedAt, bool reusable');
 
       const encodedData = schemaEncoder.encodeData([
         { name: 'consentFor', value: 'Colorado birth certificate request', type: 'string' },
         { name: 'user', value: address, type: 'address' },
-        { name: 'idHash', value: '0x0000000000000000000000000000000000000000000000000000000000000000', type: 'bytes32' }, // mock ID hash
-        { name: 'issuedAt', value: Math.floor(Date.now() / 1000), type: 'uint256' },
+        { name: 'idHash', value: '0x0000000000000000000000000000000000000000000000000000000000000000', type: 'bytes32' },
+        { name: 'issuedAt', value: BigInt(Math.floor(Date.now() / 1000)), type: 'uint256' },
         { name: 'reusable', value: true, type: 'bool' },
       ]);
 
@@ -55,7 +53,7 @@ export default function Consent() {
         schema: SCHEMA_UID,
         data: {
           recipient: address,
-          expirationTime: 0,
+          expirationTime: 0n,                    // ← bigint
           revocable: true,
           refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
           data: encodedData,
@@ -69,7 +67,7 @@ export default function Consent() {
       alert('✅ Consent attested on Base!');
     } catch (err: any) {
       console.error(err);
-      alert('Error: ' + (err.message || 'Failed to attest'));
+      alert('Attest error: ' + (err.message || 'Check console'));
     } finally {
       setAttesting(false);
     }
@@ -96,46 +94,24 @@ export default function Consent() {
 
           <div>
             <label className="text-zinc-300 block mb-2">Consent Letter Preview</label>
-            <Textarea
-              readOnly
-              value={consentText}
-              className="bg-zinc-950 border-zinc-700 text-white min-h-[140px] font-mono text-sm"
-            />
+            <Textarea readOnly value={consentText} className="bg-zinc-950 border-zinc-700 text-white min-h-[140px] font-mono text-sm" />
           </div>
 
           {!isConnected ? (
-            <div className="flex justify-center">
-              <ConnectButton />
-            </div>
+            <div className="flex justify-center"><ConnectButton /></div>
           ) : (
-            <Button
-              onClick={handleSign}
-              disabled={attesting || !fullName}
-              size="lg"
-              className="w-full text-lg py-7 rounded-full bg-emerald-600 hover:bg-emerald-700"
-            >
-              {attesting ? 'Signing with Wallet...' : 'Sign with Wallet → Create EAS Attestation'}
+            <Button onClick={handleSign} disabled={attesting || !fullName.trim()} size="lg" className="w-full text-lg py-7 rounded-full bg-emerald-600 hover:bg-emerald-700">
+              {attesting ? 'Signing...' : 'Sign with Wallet → Create EAS Attestation'}
             </Button>
           )}
 
           {attestationUID && explorerLink && (
             <div className="text-center pt-6 border-t border-white/10">
-              <Badge className="text-lg px-8 py-4 bg-emerald-500">
-                ✅ Consent attested on Base
-              </Badge>
+              <Badge className="text-lg px-8 py-4 bg-emerald-500">✅ Consent attested on Base</Badge>
               <p className="mt-4">
-                <a
-                  href={explorerLink}
-                  target="_blank"
-                  className="text-emerald-400 underline hover:text-emerald-300"
-                >
-                  View on Base EAS Explorer →
-                </a>
+                <a href={explorerLink} target="_blank" className="text-emerald-400 underline hover:text-emerald-300">View on Base EAS Explorer →</a>
               </p>
-              <Button
-                onClick={() => window.location.href = '/review'}
-                className="mt-6 w-full text-lg py-7 rounded-full"
-              >
+              <Button onClick={() => window.location.href = '/review'} className="mt-6 w-full text-lg py-7 rounded-full">
                 Continue to Review & Pay →
               </Button>
             </div>
