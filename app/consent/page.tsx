@@ -1,4 +1,4 @@
-// app/consent/page.tsx - FINAL VERSION (bigint fixed)
+// app/consent/page.tsx - FINAL BUILD-READY VERSION
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -53,7 +53,7 @@ export default function Consent() {
         schema: SCHEMA_UID,
         data: {
           recipient: address,
-          expirationTime: 0n,                    // ← bigint
+          expirationTime: BigInt(0),
           revocable: true,
           refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
           data: encodedData,
