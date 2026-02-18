@@ -1,8 +1,8 @@
-// app/consent/page.tsx - FINAL BUILD-READY VERSION
+// app/consent/page.tsx - FINAL FIXED VERSION
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,8 @@ const SCHEMA_UID = '0x6ac87b3f4c7a0678447856c42bc08b837ecfdc24c4b67862fd21f21500
 
 export default function Consent() {
   const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
+
   const [fullName, setFullName] = useState('');
   const [attesting, setAttesting] = useState(false);
   const [attestationUID, setAttestationUID] = useState('');
@@ -32,12 +34,16 @@ export default function Consent() {
       alert('Connect wallet and enter your full name');
       return;
     }
+    if (!walletClient) {
+      alert('Wallet not ready — reconnect and try again');
+      return;
+    }
 
     setAttesting(true);
 
     try {
       const eas = new EAS(EAS_CONTRACT_ADDRESS);
-      eas.connect(window.ethereum!);
+      eas.connect(walletClient);
 
       const schemaEncoder = new SchemaEncoder('string consentFor, address user, bytes32 idHash, uint256 issuedAt, bool reusable');
 
@@ -49,7 +55,7 @@ export default function Consent() {
         { name: 'reusable', value: true, type: 'bool' },
       ]);
 
-      const tx = await eas.attest({
+      const attestation = await eas.attest({
         schema: SCHEMA_UID,
         data: {
           recipient: address,
@@ -60,7 +66,7 @@ export default function Consent() {
         },
       });
 
-      const newAttestationUID = await tx.wait();
+      const newAttestationUID = attestation.uid;
       setAttestationUID(newAttestationUID);
       setExplorerLink(`https://base.easscan.org/attestation/view/${newAttestationUID}`);
 
