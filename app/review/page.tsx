@@ -1,49 +1,64 @@
-// app/review/page.tsx
 'use client';
 
 import { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!); // add this import at top: import { loadStripe } from '@stripe/stripe-js';
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 export default function Review() {
   const [paying, setPaying] = useState(false);
 
-  const handleStripe = async () => {
+  const handleCheckout = async () => {
     setPaying(true);
-    const stripe = await stripePromise;
-    if (!stripe) return alert('Stripe not loaded');
 
+    const stripe = await stripePromise;
+    if (!stripe) {
+      alert('Stripe failed to load. Please refresh and try again.');
+      setPaying(false);
+      return;
+    }
+
+    // @ts-expect-error - Stripe types sometimes miss redirectToCheckout in Next.js builds
     const { error } = await stripe.redirectToCheckout({
-      lineItems: [{ price: 'price_YOUR_TEST_PRICE_ID_HERE', quantity: 1 }], // create test price in Stripe dashboard
+      lineItems: [{ price: 'price_YOUR_TEST_PRICE_ID_HERE', quantity: 1 }], 
       mode: 'payment',
       successUrl: window.location.origin + '/confirmation',
       cancelUrl: window.location.origin + '/review',
     });
 
-    if (error) alert(error.message);
+    if (error) {
+      alert(error.message || 'Payment error occurred');
+    }
     setPaying(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 to-black text-white flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl bg-zinc-900 border-white/20">
-        <CardHeader><CardTitle className="text-3xl text-center">Review & Pay</CardTitle></CardHeader>
-        <CardContent className="space-y-8">
-          <div className="border border-white/20 bg-zinc-950 rounded-2xl p-8 text-center">
-            <div className="w-48 h-64 mx-auto bg-white/10 rounded-xl flex items-center justify-center text-6xl">📄</div>
-            <p className="mt-4">PDF Packet Ready for CDPHE</p>
+    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6">
+      <Card className="w-full max-w-lg border-zinc-800 bg-zinc-900">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center">Review & Pay</CardTitle>
+          <p className="text-center text-zinc-400">Complete your Colorado birth certificate request</p>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <div className="text-center">
+            <p className="text-4xl font-bold">$49</p>
+            <p className="text-sm text-zinc-400">One-time processing fee</p>
           </div>
 
-          <div className="bg-zinc-950 p-6 rounded-2xl border border-white/10 space-y-4">
-            <div className="flex justify-between"><span>Gov fee</span><span>$25</span></div>
-            <div className="flex justify-between"><span>Proofly fee</span><span>$19</span></div>
-            <div className="border-t border-white/10 pt-4 flex justify-between text-xl font-bold"><span>Total</span><span>$44</span></div>
-          </div>
+          <Button 
+            onClick={handleCheckout} 
+            disabled={paying} 
+            size="lg" 
+            className="w-full text-lg py-7 rounded-full bg-emerald-600 hover:bg-emerald-700"
+          >
+            {paying ? 'Processing...' : 'Pay $49 & Submit Request'}
+          </Button>
 
-          <Button onClick={handleStripe} disabled={paying} className="w-full text-lg py-8 rounded-full">Pay $44 with Stripe</Button>
-          <Button onClick={() => window.location.href = '/confirmation'} variant="outline" className="w-full text-lg py-8 rounded-full">Pay with USDC (mock)</Button>
+          <p className="text-xs text-center text-zinc-500">
+            Secure payment powered by Stripe • Your data is protected
+          </p>
         </CardContent>
       </Card>
     </div>

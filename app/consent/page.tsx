@@ -1,14 +1,12 @@
-// app/consent/page.tsx - FINAL VERSION (Vercel + TS clean)
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { EAS, SchemaEncoder } from '@ethereum-attestation-service/eas-sdk';
-import { Badge } from '@/components/ui/badge';
+import { EAS, SchemaEncoder, NO_EXPIRATION } from '@ethereum-attestation-service/eas-sdk';
 
 const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021';
 const SCHEMA_UID = '0x6ac87b3f4c7a0678447856c42bc08b837ecfdc24c4b67862fd21f2150059607b';
@@ -27,8 +25,6 @@ export default function Consent() {
     if (savedName) setFullName(savedName);
   }, []);
 
-  const consentText = `I, ${fullName || '[Your Full Name]'}, wallet ${address || '0x...'}, authorize Proofly to act as my agent for submitting a Colorado birth certificate request on my behalf. Privacy-first, data deleted on-chain.`;
-
   const handleSign = async () => {
     if (!address || !fullName.trim()) {
       alert('Connect wallet and enter your full name');
@@ -43,7 +39,7 @@ export default function Consent() {
 
     try {
       const eas = new EAS(EAS_CONTRACT_ADDRESS);
-      eas.connect(walletClient);
+      eas.connect(walletClient as any);
 
       const schemaEncoder = new SchemaEncoder('string consentFor, address user, bytes32 idHash, uint256 issuedAt, bool reusable');
 
@@ -55,52 +51,46 @@ export default function Consent() {
         { name: 'reusable', value: true, type: 'bool' },
       ]);
 
-      const result = await eas.attest({
+      const tx = await eas.attest({
         schema: SCHEMA_UID,
         data: {
           recipient: address,
-          expirationTime: BigInt(0),
+          expirationTime: NO_EXPIRATION,   // ← this fixes the bigint error
           revocable: true,
-          refUID: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          refUID: '0x' + '0'.repeat(64),
           data: encodedData,
         },
       });
 
-      const newUID = result.uid;
+      const newUID = await tx.wait();   // ← this fixes the .uid error
       setAttestationUID(newUID);
       setExplorerLink(`https://base.easscan.org/attestation/view/${newUID}`);
 
       alert('✅ Consent attested on Base!');
     } catch (err: any) {
       console.error('EAS Error:', err);
-      alert('Attest error: ' + (err.message || 'Unknown error'));
+      alert('Attest error: ' + (err?.message || String(err)));
     } finally {
       setAttesting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 to-black text-white flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl bg-zinc-900 border-white/20">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6">
+      <Card className="w-full max-w-lg border-zinc-800 bg-zinc-900">
         <CardHeader>
-          <CardTitle className="text-3xl text-center">Reusable Consent Authorization</CardTitle>
+          <CardTitle className="text-3xl font-bold text-center">Reusable Consent</CardTitle>
           <p className="text-center text-zinc-400">One-time on-chain signature • reusable forever</p>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <label className="text-zinc-300 block mb-2">Your Full Name</label>
-            <input
-              type="text"
+            <label className="text-sm text-zinc-400 block mb-2">Full Legal Name</label>
+            <Input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500"
+              className="bg-zinc-950 border-zinc-700 text-white"
               placeholder="Enter your full legal name"
             />
-          </div>
-
-          <div>
-            <label className="text-zinc-300 block mb-2">Consent Letter Preview</label>
-            <Textarea readOnly value={consentText} className="bg-zinc-950 border-zinc-700 text-white min-h-[140px] font-mono text-sm" />
           </div>
 
           {!isConnected ? (
@@ -118,7 +108,7 @@ export default function Consent() {
 
           {attestationUID && explorerLink && (
             <div className="text-center pt-6 border-t border-white/10">
-              <Badge className="text-lg px-8 py-4 bg-emerald-500">✅ Consent attested on Base</Badge>
+              <div className="inline-block bg-emerald-500 text-white px-8 py-4 rounded-full text-lg font-medium">Consent attested on Base</div>
               <p className="mt-4">
                 <a href={explorerLink} target="_blank" className="text-emerald-400 underline hover:text-emerald-300">View on Base EAS Explorer →</a>
               </p>
