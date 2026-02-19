@@ -1,4 +1,4 @@
-// app/consent/page.tsx - Vercel-ready (BigInt(0) only)
+// app/consent/page.tsx - FINAL VERSION (Vercel + TS clean)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,7 +35,7 @@ export default function Consent() {
       return;
     }
     if (!walletClient) {
-      alert('Wallet not ready — reconnect and try again');
+      alert('Wallet not ready. Reconnect and try again.');
       return;
     }
 
@@ -55,7 +55,7 @@ export default function Consent() {
         { name: 'reusable', value: true, type: 'bool' },
       ]);
 
-      const attestation = await eas.attest({
+      const result = await eas.attest({
         schema: SCHEMA_UID,
         data: {
           recipient: address,
@@ -66,14 +66,14 @@ export default function Consent() {
         },
       });
 
-      const newAttestationUID = attestation.uid;
-      setAttestationUID(newAttestationUID);
-      setExplorerLink(`https://base.easscan.org/attestation/view/${newAttestationUID}`);
+      const newUID = result.uid;
+      setAttestationUID(newUID);
+      setExplorerLink(`https://base.easscan.org/attestation/view/${newUID}`);
 
       alert('✅ Consent attested on Base!');
     } catch (err: any) {
-      console.error(err);
-      alert('Attest error: ' + (err.message || 'Check console'));
+      console.error('EAS Error:', err);
+      alert('Attest error: ' + (err.message || 'Unknown error'));
     } finally {
       setAttesting(false);
     }
@@ -106,7 +106,12 @@ export default function Consent() {
           {!isConnected ? (
             <div className="flex justify-center"><ConnectButton /></div>
           ) : (
-            <Button onClick={handleSign} disabled={attesting || !fullName.trim()} size="lg" className="w-full text-lg py-7 rounded-full bg-emerald-600 hover:bg-emerald-700">
+            <Button 
+              onClick={handleSign} 
+              disabled={attesting || !fullName.trim()} 
+              size="lg" 
+              className="w-full text-lg py-7 rounded-full bg-emerald-600 hover:bg-emerald-700"
+            >
               {attesting ? 'Signing...' : 'Sign with Wallet → Create EAS Attestation'}
             </Button>
           )}
