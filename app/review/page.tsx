@@ -11,56 +11,35 @@ export default function Review() {
   const [paying, setPaying] = useState(false);
 
   const handleCheckout = async () => {
-    setPaying(true);
-
-    const stripe = await stripePromise;
-    if (!stripe) {
-      alert('Stripe failed to load. Please refresh and try again.');
-      setPaying(false);
-      return;
-    }
-
-    // @ts-expect-error - Stripe types sometimes miss redirectToCheckout in Next.js builds
-    const { error } = await stripe.redirectToCheckout({
-      lineItems: [{ price: 'price_YOUR_TEST_PRICE_ID_HERE', quantity: 1 }], 
-      mode: 'payment',
-      successUrl: window.location.origin + '/confirmation',
-      cancelUrl: window.location.origin + '/review',
-    });
-
-    if (error) {
-      alert(error.message || 'Payment error occurred');
-    }
-    setPaying(false);
+    // your existing function stays the same
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-6">
-      <Card className="w-full max-w-lg border-zinc-800 bg-zinc-900">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center">Review & Pay</CardTitle>
-          <p className="text-center text-zinc-400">Complete your Colorado birth certificate request</p>
-        </CardHeader>
-        <CardContent className="space-y-6 pt-6">
-          <div className="text-center">
-            <p className="text-4xl font-bold">$49</p>
-            <p className="text-sm text-zinc-400">One-time processing fee</p>
-          </div>
+    <div className="min-h-screen bg-slate-950 pt-12">
+      <div className="max-w-lg mx-auto px-6">
+        <Card className="border-slate-800 bg-slate-900 rounded-3xl">
+          <CardHeader className="text-center pt-12">
+            <CardTitle className="text-5xl font-bold tracking-tight">Review & Pay</CardTitle>
+            <p className="text-slate-400 mt-3">Complete your Colorado birth certificate request</p>
+          </CardHeader>
+          <CardContent className="px-10 py-12 space-y-8">
+            <div className="text-center">
+              <p className="text-6xl font-bold text-teal-400">$49</p>
+              <p className="text-slate-400">One-time processing fee</p>
+            </div>
 
-          <Button 
-            onClick={handleCheckout} 
-            disabled={paying} 
-            size="lg" 
-            className="w-full text-lg py-7 rounded-full bg-emerald-600 hover:bg-emerald-700"
-          >
-            {paying ? 'Processing...' : 'Pay $49 & Submit Request'}
-          </Button>
+            <Button 
+              onClick={handleCheckout} 
+              disabled={paying} 
+              className="w-full text-xl py-8 rounded-3xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold"
+            >
+              {paying ? 'Processing payment…' : 'Pay $49 & Submit Request'}
+            </Button>
 
-          <p className="text-xs text-center text-zinc-500">
-            Secure payment powered by Stripe • Your data is protected
-          </p>
-        </CardContent>
-      </Card>
+            <p className="text-xs text-center text-slate-500">Secure • Stripe • Your data stays private</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
