@@ -1,5 +1,7 @@
-// app/consent/page.tsx - FINAL Vercel + local working version
+// app/consent/page.tsx - Vercel + local FINAL (prerender fixed)
 'use client';
+
+export const dynamic = 'force-dynamic'; // ← This stops Next.js from prerendering on server
 
 import { useState, useEffect } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
@@ -12,8 +14,6 @@ import { Badge } from '@/components/ui/badge';
 
 const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021';
 const SCHEMA_UID = '0x6ac87b3f4c7a0678447856c42bc08b837ecfdc24c4b67862fd21f2150059607b';
-
-export const dynamic = 'force-dynamic'; // prevents prerender error
 
 export default function Consent() {
   const { address, isConnected } = useAccount();
@@ -68,9 +68,10 @@ export default function Consent() {
         },
       });
 
-      const newUID = (attestation as any).uid; // fixes TS uid error
+      // eas.attest can return a Transaction in some contexts; cast to any and prefer uid, fallback to tx hash.
+      const newUID = (attestation as any)?.uid ?? (attestation as any)?.hash ?? '';
       setAttestationUID(newUID);
-      setExplorerLink(`https://base.easscan.org/attestation/view/${newUID}`);
+      setExplorerLink(newUID ? `https://base.easscan.org/attestation/view/${newUID}` : '');
 
       alert('✅ Consent attested on Base!');
     } catch (err: any) {
