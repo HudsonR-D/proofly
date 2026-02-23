@@ -1,7 +1,6 @@
-// app/consent/page.tsx - SINGLE FILE FINAL (prerender + uid fixed)
 'use client';
 
-export const dynamic = 'force-dynamic'; // fixes Vercel prerender error
+export const dynamic = 'force-dynamic'; // fixes prerender error
 
 import { useState, useEffect } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
@@ -68,7 +67,7 @@ export default function Consent() {
         },
       });
 
-      const newUID = await tx.wait(); // fixes 'uid' type error
+      const newUID = await tx.wait() as string; // fixes 'uid' type error
       setAttestationUID(newUID);
       setExplorerLink(`https://base.easscan.org/attestation/view/${newUID}`);
 
