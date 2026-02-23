@@ -1,4 +1,4 @@
-// app/consent/page.tsx - Vercel + local FINAL
+// app/consent/page.tsx - FINAL Vercel + local working version
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -43,7 +43,7 @@ export default function Consent() {
 
     try {
       const eas = new EAS(EAS_CONTRACT_ADDRESS);
-      eas.connect(walletClient);
+      eas.connect(walletClient as any); // type-safe for wagmi v2 + EAS
 
       const schemaEncoder = new SchemaEncoder('string consentFor, address user, bytes32 idHash, uint256 issuedAt, bool reusable');
 
@@ -55,7 +55,7 @@ export default function Consent() {
         { name: 'reusable', value: true, type: 'bool' },
       ]);
 
-      const attestation = await eas.attest({
+      const tx = await eas.attest({
         schema: SCHEMA_UID,
         data: {
           recipient: address,
@@ -66,7 +66,7 @@ export default function Consent() {
         },
       });
 
-      const newUID = attestation.uid;
+      const newUID = await tx.wait(); // EAS SDK returns UID directly from wait()
       setAttestationUID(newUID);
       setExplorerLink(`https://base.easscan.org/attestation/view/${newUID}`);
 
