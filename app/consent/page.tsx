@@ -1,4 +1,4 @@
-// app/consent/page.tsx
+// app/consent/page.tsx - Vercel + local FINAL
 'use client';
 
 import { useState, useEffect } from 'react';
