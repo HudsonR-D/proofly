@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge';
 const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021';
 const SCHEMA_UID = '0x6ac87b3f4c7a0678447856c42bc08b837ecfdc24c4b67862fd21f2150059607b';
 
+export const dynamic = 'force-dynamic'; // prevents prerender error
+
 export default function Consent() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -43,7 +45,7 @@ export default function Consent() {
 
     try {
       const eas = new EAS(EAS_CONTRACT_ADDRESS);
-      eas.connect(walletClient as any); // type-safe for wagmi v2 + EAS
+      eas.connect(walletClient as any);
 
       const schemaEncoder = new SchemaEncoder('string consentFor, address user, bytes32 idHash, uint256 issuedAt, bool reusable');
 
@@ -55,7 +57,7 @@ export default function Consent() {
         { name: 'reusable', value: true, type: 'bool' },
       ]);
 
-      const tx = await eas.attest({
+      const attestation = await eas.attest({
         schema: SCHEMA_UID,
         data: {
           recipient: address,
@@ -66,7 +68,7 @@ export default function Consent() {
         },
       });
 
-      const newUID = await tx.wait(); // EAS SDK returns UID directly from wait()
+      const newUID = (attestation as any).uid; // fixes TS uid error
       setAttestationUID(newUID);
       setExplorerLink(`https://base.easscan.org/attestation/view/${newUID}`);
 
